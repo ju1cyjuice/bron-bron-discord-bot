@@ -76,6 +76,17 @@ async def update_nicknames(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
 
     guild = interaction.guild
+
+    for member in guild.members:
+        if member.bot:
+            continue
+        try:
+            await member.edit(nick=None)
+        except discord.Forbidden:
+            continue
+        except discord.HTTPException as e:
+            continue
+
     all_data = sheet.get_all_values()
     rows = all_data[1:]
 
@@ -87,8 +98,8 @@ async def update_nicknames(interaction: discord.Interaction):
     id_rating = {}
     for row in filtered_data:
         if int(row[1]) > 100:
-            id_rating[int(discord_ids[row[0].strip()])] = [
-                row[0].strip(), row[2].strip()]
+            if row[0].strip() in discord_ids:
+                id_rating[int(discord_ids[row[0].strip()])] = [row[0].strip(), row[2].strip()]
 
     updated = 0
 
@@ -96,10 +107,12 @@ async def update_nicknames(interaction: discord.Interaction):
         if member.bot:
             continue
 
-        player_name = id_rating.get(member.id)[0]
-        if not player_name:
+        info = id_rating.get(member.id)
+        if info:
+            player_name, rating = info
+        else:
             player_name = member.display_name
-        rating = id_rating.get(member.id)[1]
+            rating = None
 
         try:
             if rating:
